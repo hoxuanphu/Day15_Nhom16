@@ -1,3 +1,6 @@
+* Họ và tên: Hồ xuân Phú
+* MSHV: 2A202600061
+
 ### Chatbot tra cứu lịch sử
 * **Đối tượng sử dụng**:
 
