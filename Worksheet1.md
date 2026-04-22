@@ -2,65 +2,54 @@
 * MSHV: 2A202600061
 
 ### Chatbot tra cứu lịch sử
-* **Đối tượng sử dụng**:
+**Sản phẩm:** Sử Việt AI Agent
 
-  * Học sinh, sinh viên (tra cứu kiến thức)
-  * Giáo viên, nhà nghiên cứu (tìm tài liệu chuyên sâu)
-  * Người dùng phổ thông (hỏi nhanh thông tin lịch sử)
-  * Du khách tham quan các khu di tích lịch sử (tìm hiểu thêm thông tin nơi mình đang tham quan)
-* **Môi trường triển khai**:
+---
 
-  * Web app / mobile app / API tích hợp LMS (Learning Management System)
-* **Yêu cầu sử dụng**:
+### 1. Bối cảnh tổ chức & Người dùng mục tiêu
 
-  * Trả lời chính xác, có dẫn nguồn, không trả lời sai chủ đề hoặc sai trọng tâm dài dòng.
-  * Trích dẫn đúng nguồn tài liệu
-  * Agent không bị ảo giác
-  * Phản hồi nhanh (real-time)
-  * Có khả năng mở rộng khi nhiều user đồng thời
+- **Tổ chức giả định:** Một đơn vị giáo dục hoặc viện nghiên cứu lịch sử, mong muốn cung cấp công cụ tra cứu thông minh cho học sinh, sinh viên và cán bộ nội bộ.
+- **Người dùng chính:**
+  - Học sinh, sinh viên (tra cứu nhanh, ôn tập).
+  - Giáo viên, nhà nghiên cứu (kiểm chứng dữ liệu, tổng hợp tài liệu).
+  - Du khách tham quan bảo tàng/di tích (tìm hiểu thông tin tại chỗ).
 
-* **Dữ liệu hệ thống sử dụng**
-    * Dữ liệu lịch sử:
+---
 
-        * Sách giáo khoa, tài liệu chính thống (đã qua kiểm duyệt)
-        * Dữ liệu open-source (Wikipedia(chỉ để tham khảo, khuyến cáo không tin 100%), dataset lịch sử)
-        * Tài liệu nội bộ (nếu có)
-        * Tài liệu nội bọ hạn chế truy cập (nếu có)
-    * Dữ liệu hệ thống:
+### 2. Dữ liệu hệ thống & Mức độ nhạy cảm
 
-        * Log truy vấn người dùng
-        * Metadata (nguồn, thời gian, tác giả)
-        * Dữ liệu mô hình:
+| Loại dữ liệu | Ví dụ cụ thể | Mức độ nhạy cảm |
+| :--- | :--- | :--- |
+| **Dữ liệu lịch sử công khai** | Sách giáo khoa, tài liệu chính thống đã kiểm duyệt, Wikipedia (tham khảo) | **Thấp** |
+| **Tài liệu nội bộ / bản quyền** | Tư liệu lưu trữ riêng của tổ chức, bài báo khoa học | **Trung bình** |
+| **Log truy vấn người dùng** | Lịch sử câu hỏi, địa chỉ IP, hành vi sử dụng | **Cao** (có thể chứa thông tin cá nhân) |
+| **Cấu hình hệ thống & Metadata** | Index vector, cấu trúc DB, tài liệu hạn chế truy cập | **Rất cao** |
 
-        * Embedding vectors
-        * Index (FAISS, ElasticSearch,...)
+---
 
-    * Thấp và Trung bình**:
+### 3. Ba ràng buộc Enterprise quan trọng nhất
 
-        * Dữ liệu lịch sử công khai -> thấp
-    * Trung bình và Cao**:
+1. **Chủ quyền Dữ liệu (Data Sovereignty):**  
+   Dữ liệu lịch sử nội bộ và log người dùng **không được phép rời khỏi biên giới quốc gia**. Không sử dụng các public API nước ngoài cho các tác vụ liên quan đến dữ liệu nhạy cảm.
 
-        * Tài liệu bản quyền
-        * Dữ liệu nội bộ tổ chức -> trung bình
-        * Log người dùng (có thể chứa thông tin cá nhân) -> cao
-        * Dữ liệu hệ thống -> cao
-        * Cấu hình hệ thống -> cao
-        * Tài liệu nội bộ hạn chế truy cập -> rất cao
-     * Thường xuyên kiểm tra dữ liệu, câu trả lời của chatbot
-     * Cần có hội đồng kiểm duyệt có chuyên môn trước khi đưa vào hệ thống.
-* **Ràng buộc enterprise lớn nhất**
-    * Tính kế thừa và Tích hợp: Phải tích hợp được với hệ thống quản lý dữ liệu hiện có của tổ chức (Legacy systems) và tuân thủ quy trình phê duyệt nội dung trước khi câu trả lời được hiển thị.
+2. **Khả năng Truy vết (Audit Trail):**  
+   Mọi câu hỏi – câu trả lời đều phải được lưu trữ để phục vụ kiểm toán. Khi có thông tin sai lệch, tổ chức cần xác định được nguyên nhân gốc rễ (do nguồn tài liệu hay do mô hình).
 
-    * Khả năng truy vết (Audit Trail): Mọi câu hỏi và câu trả lời phải được ghi lại để kiểm toán. Nếu AI trả lời sai gây hiểu lầm về lịch sử, tổ chức phải biết rõ nguyên nhân do dữ liệu nguồn hay lỗi mô hình.
+3. **Quy trình Phê duyệt & Tích hợp:**  
+   Hệ thống phải tích hợp được với kho dữ liệu có sẵn (Legacy systems) và có cơ chế để chuyên gia duyệt mẫu câu trả lời trước khi công bố rộng rãi.
 
-    * Chủ quyền dữ liệu (Data Sovereignty): Dữ liệu không được phép rời khỏi biên giới tổ chức hoặc biên giới quốc gia (không sử dụng các Public API của nước ngoài cho dữ liệu mật).
+---
 
-* **Đề xuất mô hình triển khai:** Hybrid Cloud (Kết hợp giữa Cloud và On-premise).
-* **Lý do:**
-    1. **Cân bằng giữa bảo mật và hiệu năng**
+### 4. Đề xuất Mô hình Triển khai: **Hybrid Cloud**
 
-        * Dữ liệu nhạy cảm (log, tài liệu nội bộ) → On-prem
-        * Model inference / scaling → Cloud
+**Lý do lựa chọn:**
+
+1. **Cân bằng Bảo mật & Hiệu năng:**  
+   - **On-premise:** Lưu trữ dữ liệu nhạy cảm (log, tài liệu mật), đảm bảo chủ quyền dữ liệu.  
+   - **Cloud (Private Cloud nội địa):** Triển khai inference LLM và auto-scaling để xử lý tải cao điểm mà không cần đầu tư hạ tầng cứng quá lớn.
+
+2. **Tối ưu Chi phí Vận hành Dài hạn:**  
+   Giữ workload ổn định trên hạ tầng on-prem để tiết kiệm chi phí thuê cloud thường xuyên, đồng thời tận dụng khả năng co giãn của cloud khi có đợt cao điểm (ví dụ: mùa thi, lễ kỷ niệm lịch sử).
 
     2. **Tối ưu chi phí & mở rộng**
 
