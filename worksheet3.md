@@ -18,7 +18,7 @@
 
 #### Chiến lược 1: Semantic Caching
 - **Cơ chế tiết kiệm:** Bỏ qua toàn bộ chu trình Planner → Executor → LLM Synthesis cho các câu hỏi tương tự.
-- **Lợi ích:** Dữ liệu lịch sử 1965-1975 là bất biến, tần suất hỏi trùng lặp cao (VD: "Chiến dịch Hồ Chí Minh diễn ra khi nào?"). Hit rate cao giúp giảm mạnh latency và token cost.
+- **Lợi ích:** Dữ liệu lịch sử là bất biến, tần suất hỏi trùng lặp cao (VD: "Chiến dịch Hồ Chí Minh diễn ra khi nào?"). Hit rate cao giúp giảm mạnh latency và token cost.
 - **Trade-off:** Cần duy trì Vector Database cho Cache, rủi ro trả lời sai nếu ngưỡng similarity quá thấp.
 - **Thời điểm áp dụng:** **LÀM NGAY**. Đây là "quick win" tách biệt khỏi core logic.
 
