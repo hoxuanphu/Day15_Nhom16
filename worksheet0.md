@@ -6,7 +6,7 @@
 # Worksheet 0 – Định hướng Dự án & Năng lực Nhóm
 
 **Nhóm thực hiện:** Nhóm 5 – AI Application Track  
-**Sản phẩm:** **Sử Việt AI Agent** (Trợ lý ảo tra cứu lịch sử Việt Nam 1965–1975)
+**Sản phẩm:** **Sử Việt AI Agent** (Trợ lý ảo tra cứu lịch sử Việt Nam)
 
 ---
 
