@@ -1,4 +1,6 @@
 # Worksheet 4 – Production Readiness & Incident Response
+# Họ và tên: Lại Đức Anh
+# Mã sinh viên: 2A202600374
 
 **Hệ thống:** Sử Việt AI Agent
 
