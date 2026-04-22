@@ -10,12 +10,12 @@ Dựa trên đóng góp kỹ thuật trong dự án History Chatbot và Lab Eval
 
 | Thành viên | Business/Product | Infra/Data/Ops | AI Engineering/Application |
 | :--- | :---: | :---: | :---: |
-| Đào Danh Đăng Phụng | 3 | 3 | 4 |
-| Hồ Xuân Phú | 3 | 4 | 4 |
-| Phạm Anh Quân | 4 | 3 | 4 |
-| Hoàng Ngọc Thạch | 3 | 3 | 4 |
-| Nguyễn Minh Trí | 3 | 3 | 3 |
-| Lại Đức Anh | 2 | 4 | 4 |
+| Đào Danh Đăng Phụng | 2 | 2 | 3 |
+| Hồ Xuân Phú | 2 | 4 | 5 |
+| Phạm Anh Quân | 3 |  3 | 4 |
+| Hoàng Ngọc Thạch | 2 | 2 | 2|
+| Nguyễn Minh Trí | 3 | 3 | 4 |
+| Lại Đức Anh | 3 | 3 | 4 |
 
 ### 2. Thảo luận điểm mạnh của nhóm
 Nhóm có nền tảng kỹ thuật khá đồng đều, đặc biệt là trong mảng **AI Engineering**.
