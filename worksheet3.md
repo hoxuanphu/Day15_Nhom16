@@ -1,85 +1,51 @@
 # Worksheet 3 – Cost Optimization Debate
-**Hệ thống: Chatbot tra cứu lịch sử**
 
-## Câu 1: 3 chiến lược phù hợp nhất
-- Semantic Caching
-- Model Routing
-- Selective Inference / Phân tầng request
-
-
-Vì sao loại 2 chiến lược còn lại:
-- Prompt compression: domain lịch sử đòi hỏi độ chính xác cao về ngày tháng, tên người, địa danh, nén prompt dễ làm mất chi tiết then chốt, ROI thấp so với rủi ro.
-- Smaller/self-hosted model: volume chưa đủ lớn để bù chi phí hạ tầng và rủi ro giảm accuracy trên domain chuyên biệt.
+**Hệ thống:** Sử Việt AI Agent
 
 ---
 
-## Câu 2: Chi tiết từng chiến lược
+### 1. Ba chiến lược ưu tiên áp dụng
 
-### Chiến lược 1: Semantic Caching
+1. **Semantic Caching**  
+2. **Model Routing**  
+3. **Selective Inference / Phân tầng Request**
 
-**Tiết kiệm:** toàn bộ chuỗi Planner → N lần Executor → LLM synthesis cho mỗi cache hit.
-
-**Lợi ích:**
-- Domain rất hẹp (1965–1975) → độ tương đồng giữa các query cao → hit rate cao khi nhiều user hỏi.
-- Sự thật lịch sử bất biến → cache không bị stale, không cần TTL ngắn như chatbot tin tức.
-- Giảm cả chi phí token lẫn latency, quan trọng nếu dùng trong lớp học/demo.
-
-**Trade-off:**
-Phải dựng thêm embedding model + vector DB cho cache layer.
-Rủi ro false positive: "trận Mậu Thân 1968" vs "thương vong trận Mậu Thân 1968" trông giống nhau nhưng intent khác → cần đặt ngưỡng similarity chặt + có fallback khi không chắc.
-
-**Thời điểm áp dụng:** NGAY. Đây là quick win lớn nhất, không đụng logic core.
-
-### Chiến lược 2: Model Routing
-
-**Tiết kiệm:** chi phí mỗi lượt LLM call, bằng cách chọn model nhỏ hơn cho các bước không cần reasoning sâu.
-
-**Lợi ích:**
-Kiến trúc Planner-Executor đã sẵn có phân vai tự nhiên:
-
-Planner (cần reasoning để chia nhỏ câu hỏi) → model lớn (ví dụ Sonnet/Opus).
-Executor (tổng hợp từ đoạn văn đã retrieve) → model tầm trung hoặc nhỏ (Haiku).
-Out-of-scope classifier → model rất nhỏ hoặc rule-based.
-
-
-Không đánh đổi accuracy nếu phân vai đúng vì mỗi model làm đúng việc của mình.
-
-
-**Trade-off:**
-
-Pipeline phức tạp hơn (maintain nhiều model, nhiều prompt).
-Cần benchmark lại: model nhỏ có đủ sức làm Executor trên văn bản sử Việt không (tên riêng, Hán-Việt, ngày âm lịch…).
-
-
-**Thời điểm áp dụng:** NGAY. Khớp 1–1 với kiến trúc hiện có, chỉ đổi config model theo node, không thiết kế lại.
-
-### Chiến lược 3: Selective Inference / Phân tầng request
-
-**Tiết kiệm:** bỏ hẳn bước Planner (và đôi khi cả Executor) cho những câu hỏi không cần đến.
-
-**Lợi ích:**
-
-Hệ thống đã tự nhận diện được câu hỏi ngoài phạm vi → reject sớm bằng classifier rẻ, tiết kiệm 100% chi phí cho nhóm này (ví dụ: câu hỏi về đời sống hàng ngày).
-Câu hỏi đơn giản (1 thực thể, 1 mốc thời gian) → đi thẳng RAG, bỏ qua Planning.
-Câu hỏi phức tạp (đối chiếu nhiều mốc, nhiều trận, nhiều bên) → mới kích hoạt full Planner-Executor.
-
-
-**Trade-off:**
-
-Cần thêm classifier phân loại độ phức tạp → có thể phân loại sai.
-Nếu sai về phía "đơn giản" cho câu thực ra phức tạp → chất lượng trả lời giảm, đụng đúng vào vấn đề mà Planner sinh ra để giải quyết.
-
-
-**Thời điểm áp dụng:** SAU. Cần log dữ liệu thật từ người dùng để định nghĩa ngưỡng phân tầng; làm sớm dễ over-engineer với bộ 5 câu test.
+*(Lý do loại bỏ Prompt Compression: Domain lịch sử yêu cầu độ chính xác tuyệt đối về ngày tháng và tên riêng, nén prompt có thể làm sai lệch sự kiện).*
 
 ---
 
-## Câu 3: Chiến lược nào làm ngay, chiến lược nào để sau
-**Làm ngay:**
+### 2. Chi tiết Chiến lược
 
-- Semantic Caching — ROI cao nhất, implementation tách biệt khỏi core, phù hợp với tính bất biến của dữ liệu lịch sử.
-- Model Routing — Khớp tự nhiên với Planner-Executor, chỉ cần đổi model per-node, hiệu quả thấy được ngay.
+#### Chiến lược 1: Semantic Caching
+- **Cơ chế tiết kiệm:** Bỏ qua toàn bộ chu trình Planner → Executor → LLM Synthesis cho các câu hỏi tương tự.
+- **Lợi ích:** Dữ liệu lịch sử 1965-1975 là bất biến, tần suất hỏi trùng lặp cao (VD: "Chiến dịch Hồ Chí Minh diễn ra khi nào?"). Hit rate cao giúp giảm mạnh latency và token cost.
+- **Trade-off:** Cần duy trì Vector Database cho Cache, rủi ro trả lời sai nếu ngưỡng similarity quá thấp.
+- **Thời điểm áp dụng:** **LÀM NGAY**. Đây là "quick win" tách biệt khỏi core logic.
 
-**Để sau:**
+#### Chiến lược 2: Model Routing
+- **Cơ chế tiết kiệm:** Chọn model rẻ hơn cho các tác vụ không đòi hỏi suy luận sâu.
+- **Cụ thể:**
+  - **Planner (Phân rã câu hỏi):** Dùng model lớn (VD: GPT-5.4-mini).
+  - **Executor (Tổng hợp dữ liệu đã retrieve):** Dùng model nhỏ/gọn (VD: Gemini Flash).
+  - **Classifier (Phân loại câu hỏi ngoài lề):** Dùng model rất nhỏ hoặc rule-based.
+- **Trade-off:** Tăng độ phức tạp pipeline.
+- **Thời điểm áp dụng:** **LÀM NGAY**. Phù hợp tự nhiên với kiến trúc Planner-Executor sẵn có.
 
-- Selective Inference / Phân tầng — làm sau khi có traffic thật và log đủ lớn để huấn luyện/đánh giá classifier phân loại độ phức tạp.
+#### Chiến lược 3: Selective Inference / Phân tầng Request
+- **Cơ chế tiết kiệm:** Không phải câu hỏi nào cũng cần đến Agent "hạng nặng".
+- **Phân loại:**
+  - **Simple QA:** "Trận Điện Biên Phủ trên không năm nào?" → Chỉ cần RAG đơn giản.
+  - **Complex QA:** "So sánh thương vong giữa Mậu Thân 1968 và Điện Biên Phủ 1972" → Cần Planner-Executor đầy đủ.
+  - **Out-of-Scope:** "Công thức nấu phở bò" → Từ chối ngay bằng classifier rẻ tiền.
+- **Trade-off:** Cần đủ dữ liệu thực tế để huấn luyện bộ phân loại chính xác.
+- **Thời điểm áp dụng:** **ĐỂ SAU**. Cần có log người dùng thật để đánh giá độ phức tạp trước khi triển khai.
+
+---
+
+### 3. Lộ trình thực hiện
+
+| Ưu tiên | Chiến lược | Lý do |
+| :---: | :--- | :--- |
+| **1** | Semantic Caching | ROI cao nhất, không ảnh hưởng chất lượng câu trả lời. |
+| **2** | Model Routing | Tận dụng tối đa kiến trúc hiện có, giảm chi phí mỗi lượt gọi. |
+| **3** | Selective Inference | Sẽ phát triển sau khi có đủ dữ liệu production (Phase 2). |
