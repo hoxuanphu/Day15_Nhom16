@@ -1,159 +1,49 @@
-# AI Chatbot Lịch Sử – Phân tích vấn đề & cách xử lý
+# Worksheet 4 – Production Readiness & Incident Response
 
-## Mục tiêu
-- Hoạt động ổn định khi tải cao.
-- Giảm thiểu lỗi từ provider.
-- Đảm bảo độ chính xác thông tin.
-- Duy trì trải nghiệm người dùng tốt.
+**Hệ thống:** Sử Việt AI Agent
 
 ---
 
-## I. Tổng quan hệ thống
+### I. Tình huống 1: Traffic tăng đột biến (High Load)
 
-### Các loại request
-- Hỏi đáp cơ bản (fact-based).
-- Giải thích chuyên sâu.
-- So sánh sự kiện/nhân vật.
-- Timeline lịch sử.
-- Trích nguồn tham khảo.
-- Hội thoại nhiều lượt.
+**Ngữ cảnh:** Mùa thi hoặc sự kiện kỷ niệm khiến lượng truy cập tăng gấp 5-10 lần bình thường.
 
-### Đặc điểm hệ thống
-- Phụ thuộc LLM + RAG.
-- Yêu cầu độ chính xác cao.
-- Không phải mọi request đều cần real-time.
+| Hành động | Giải pháp Ngắn hạn | Giải pháp Dài hạn |
+| :--- | :--- | :--- |
+| **Bảo vệ hệ thống** | **Rate Limiting:** Giới hạn 10 req/phút/IP. Vượt ngưỡng trả về HTTP 429. | **Auto-scaling:** Cấu hình HPA (Horizontal Pod Autoscaler) trên cụm Cloud. |
+| **Xử lý backlog** | **Queue:** Đẩy request vào hàng đợi Redis/RabbitMQ, phản hồi người dùng bằng ticket "Đang xử lý". | **Async Processing:** Tách biệt hoàn toàn luồng nhận request và luồng xử lý Agent. |
+| **Giảm tải** | **Graceful Degradation:** Chuyển sang Model Routing mặc định dùng model rẻ hơn để đảm bảo phục vụ. | **Semantic Caching** toàn diện. |
+
+**Fallback Proposal:** Khi queue đầy hoặc quá tải, trả về thông báo: *"Hệ thống đang có lượng truy cập rất cao. Vui lòng thử lại sau 5 phút."*
 
 ---
 
-## II. Các vấn đề & cách xử lý
+### II. Tình huống 2: Provider Timeout / API LLM Lỗi
 
-### 1. Traffic tăng đột biến (High Load)
-- **Tình huống**: Người dùng tăng đột ngột.
-- **Tác động**: Chậm, timeout, mất request.
+**Ngữ cảnh:** OpenAI hoặc Google API gặp sự cố mạng hoặc quá tải.
 
-#### Cách xử lý ngắn hạn
-- **Rate Limiting**: Giới hạn 10 req/phút/user, vượt quá trả 429.
-- **Queue**: Đưa yêu cầu vào hàng đợi, worker xử lý sau.
-- **Giảm chất lượng có kiểm soát**: Dùng model nhỏ, trả lời ngắn gọn.
-- **Caching**: Lưu câu hỏi phổ biến (VD: "Hitler là ai?").
+| Hành động | Giải pháp Ngắn hạn | Giải pháp Dài hạn |
+| :--- | :--- | :--- |
+| **Đảm bảo tính sẵn sàng** | **Retry với Exponential Backoff:** Thử lại 3 lần (1s, 2s, 4s). | **Multi-Provider:** Cấu hình fallback tự động (Primary: Gemini, Secondary: GPT-4o-mini). |
+| **Cô lập sự cố** | **Circuit Breaker:** Nếu tỉ lệ lỗi > 50% trong 1 phút, tạm ngắt gọi API đó trong 30 giây. | **Health Check Endpoint** định kỳ. |
+| **Trải nghiệm người dùng** | **Timeout Control:** Cài đặt deadline 10 giây cho toàn bộ luồng xử lý. | **Static Fallback:** Với câu hỏi phổ biến, trả về cache cứng nếu API chết hoàn toàn. |
 
-#### Giải pháp dài hạn
-- **Auto Scaling**: Tự động tăng/giảm server theo tải.
-- **Model Routing**: Câu đơn giản → model nhỏ, câu phức tạp → model lớn.
-
-#### Metrics & Fallback
-- Metrics: QPS, p95/p99 latency, error rate, queue length.
-- Fallback: Thông báo bận, chuyển xử lý async.
+**Fallback Proposal:** *"Trợ lý đang gặp chút khó khăn trong việc kết nối. Bạn vui lòng hỏi lại câu hỏi khác hoặc thử lại sau ít phút."*
 
 ---
 
-### 2. Provider Timeout / API lỗi
-- **Tình huống**: LLM API không phản hồi.
-- **Tác động**: Chat treo.
+### III. Tình huống 3: Response chậm (High Latency)
 
-#### Cách xử lý ngắn hạn
-- **Retry với Exponential Backoff**: 1s → 2s → 4s.
-- **Timeout control**: Hủy yêu cầu sau 10s.
-- **Circuit Breaker**: Ngắt tạm thời nếu lỗi liên tục.
+**Ngữ cảnh:** Câu hỏi yêu cầu Planner phân rã nhiều bước và truy xuất nhiều tài liệu.
 
-#### Giải pháp dài hạn
-- **Multi-provider**: Chính + backup.
-- **Local model fallback**: Dùng model nội bộ khi API chết.
+| Hành động | Giải pháp Ngắn hạn | Giải pháp Dài hạn |
+| :--- | :--- | :--- |
+| **Tương tác UX** | **Streaming:** Trả kết quả từng token để người dùng không cảm thấy "chết treo". | **WebSocket Connection:** Duy trì kết nối hai chiều để cập nhật trạng thái Agent (Đang tìm kiếm -> Đang phân tích...). |
+| **Tối ưu hóa** | **Giảm Chunk Size:** Giới hạn số lượng văn bản retrieve tối đa (Top K=3). | **Hybrid Search & Reranking:** Tăng độ chính xác của Retrieval để LLM xử lý ít token hơn. |
+| **Xử lý nền** | Chuyển câu hỏi dài sang Async Queue, gửi email thông báo khi có kết quả. | Xây dựng tính năng "Thư viện câu hỏi của tôi". |
 
-#### Metrics & Fallback
-- Metrics: Success rate, timeout rate, retry count.
-- Fallback: Trả lời đơn giản hoặc thông báo lỗi.
-
----
-
-### 3. Response chậm (High Latency)
-- **Tình huống**: Query phức tạp hoặc RAG chậm.
-- **Tác động**: Người dùng chờ lâu.
-
-#### Cách xử lý ngắn hạn
-- **Streaming response**: Trả từng phần thay vì đợi hoàn tất.
-- **Hiển thị trạng thái**: "Đang xử lý...".
-- **Giảm context**: Lấy ít tài liệu hơn từ RAG.
-
-#### Giải pháp dài hạn
-- **Tối ưu RAG**: Dùng Vector DB, chunk kích thước hợp lý.
-- **Tối ưu prompt**: Cắt giảm token dư thừa.
-
-#### Metrics & Fallback
-- Metrics: Latency tổng, retrieval time, token usage.
-- Fallback: Trả lời dạng bullet ngắn.
-
----
-
-### 4. Hallucination (AI trả lời sai)
-- **Tình huống**: Thông tin lịch sử bịa đặt.
-- **Tác động**: Mất uy tín hệ thống.
-
-#### Cách xử lý ngắn hạn
-- **Confidence threshold**: Không trả lời nếu không chắc chắn.
-- **Hiển thị nguồn**: Luôn kèm tài liệu tham khảo.
-
-#### Giải pháp dài hạn
-- **RAG pipeline chặt chẽ**: Chỉ trả lời dựa trên tài liệu truy xuất.
-- **Fact-check layer**: Model thứ hai kiểm tra tính xác thực.
-
-#### Metrics & Fallback
-- Metrics: Tỉ lệ hallucination, phản hồi người dùng.
-- Fallback: "Không chắc chắn", đề xuất nguồn uy tín.
-
----
-
-### 5. Context bị mất
-- **Tình huống**: Model quên nội dung hội thoại trước.
-- **Cách xử lý**:
-  - Lưu lịch sử chat vào DB/bộ nhớ.
-  - Tóm tắt context khi vượt quá giới hạn token.
-  - Entity tracking để theo dõi nhân vật/sự kiện chính.
-- **Fallback**: Chủ động hỏi lại người dùng.
-
----
-
-### 6. Nội dung nhạy cảm
-- **Cách xử lý**:
-  - Moderation input (từ khóa hoặc model phân loại).
-  - Giữ giọng điệu trung lập, khách quan.
-  - Từ chối lịch sự nếu câu hỏi mang tính khiêu khích.
-
----
-
-### 7. Spam / Abuse
-- **Cách xử lý**:
-  - Rate limit theo IP.
-  - CAPTCHA khi có dấu hiệu nghi ngờ.
-  - Phát hiện bot qua phân tích hành vi.
-
----
-
-### 8. Cost tăng cao
-- **Cách xử lý**:
-  - Cache câu hỏi phổ biến.
-  - Giới hạn token input/output mỗi request.
-  - Dùng model nhỏ cho đa số lưu lượng, model lớn cho câu hỏi phức tạp.
-
----
-
-## III. Phân loại request
-- **Real-time**: Câu hỏi ngắn, fact đơn giản → ưu tiên xử lý nhanh.
-- **Async**: Phân tích dài, timeline → xử lý bất đồng bộ, trả kết quả sau.
-
----
-
-## IV. Kiến trúc đề xuất
-- API Gateway → Queue → LLM Service / RAG Service → Cache → Monitoring.
-- Tách biệt nhận request và xử lý, dễ mở rộng và giám sát.
-
----
-
-## V. Tổng kết
-- Không sập khi đông người.
-- Không phụ thuộc 1 provider.
-- Không trả lời sai.
-- Không để người dùng chờ lâu.
-
-### Nguyên tắc quan trọng
-- **Luôn có fallback – vì hệ thống thực tế chắc chắn sẽ lỗi.**
+**Metrics cần Monitor:**
+- `p95_latency_seconds`
+- `retrieval_duration_ms`
+- `token_usage_per_request`
+- `cache_hit_rate`
